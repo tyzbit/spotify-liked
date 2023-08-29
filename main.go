@@ -108,8 +108,12 @@ func main() {
 		if err != nil {
 			log.Printf("Error using token: %+v", err)
 		} else {
-			file, _ := json.MarshalIndent(token, "", " ")
-			writeFile(authfile, file)
+			oldToken, _ := client.Token()
+			if token != oldToken {
+				file, _ := json.MarshalIndent(token, "", " ")
+				log.Println("Updating saved token")
+				writeFile(authfile, file)
+			}
 		}
 		state, _ := client.PlayerCurrentlyPlaying(context.Background())
 		if state.Item == nil {
