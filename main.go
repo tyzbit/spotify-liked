@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -80,7 +81,7 @@ func main() {
 	go func() {
 		token := trySavedAuth(context.Background())
 
-		if token == "" {
+		if token.AccessToken == "" {
 			go func() {
 				err := http.ListenAndServe(":8080", nil)
 				if err != nil {
@@ -96,20 +97,25 @@ func main() {
 		}
 	}()
 
+	// this waits for the client to be provided in the channel
+	// and then handles the main functionality (getting true/false and sending
+	// through rch channel)
 	go func() {
 		// wait for auth to complete (either saved auth or user-interacted auth)
 		client := <-ch
+		// write the token first
+		token, err := client.Token()
+		if err != nil {
+			log.Printf("Error using token: %+v", err)
+		} else {
+			file, _ := json.MarshalIndent(token, "", " ")
+			writeFile(authfile, file)
+		}
 		state, _ := client.PlayerCurrentlyPlaying(context.Background())
 		if state.Item == nil {
 			// there must not be anything playing
 			rch <- "false"
 			return
-		}
-		token, err := client.Token()
-		if err != nil {
-			log.Printf("Error using token: %+v", err)
-		} else {
-			writeFile(authfile, token.AccessToken)
 		}
 		currentItem := state.Item
 		isSaved, err := client.UserHasTracks(context.Background(), currentItem.ID)
@@ -124,22 +130,22 @@ func main() {
 	fmt.Print(result)
 }
 
-func trySavedAuth(ctx context.Context) string {
-	token := readFile(authfile)
-	otk := &oauth2.Token{
-		AccessToken: token,
-	}
+func trySavedAuth(ctx context.Context) *oauth2.Token {
+	tokenFile := readFile(authfile)
+	token := &oauth2.Token{}
+	_ = json.Unmarshal([]byte(tokenFile), token)
 	// use the token to get an authenticated client
-	client := spotify.New(auth.Client(ctx, otk))
+	client := spotify.New(auth.Client(ctx, token))
 	user, err := client.CurrentUser(context.Background())
 	if user == nil {
 		log.Printf("Saved token didn't work: %+v", err)
-		return ""
+		return token
 	}
 	state, _ := client.PlayerCurrentlyPlaying(context.Background())
 	if state == nil {
 		log.Printf("User is probably not playing anything")
-		return ""
+		ch <- client
+		return token
 	}
 	ch <- client
 	return token
@@ -158,7 +164,7 @@ func completeAuth(w http.ResponseWriter, r *http.Request) {
 
 	// use the token to get an authenticated client
 	client := spotify.New(auth.Client(r.Context(), tok))
-	fmt.Fprintf(w, loginPageHTML)
+	fmt.Fprint(w, loginPageHTML)
 	ch <- client
 }
 
@@ -166,7 +172,7 @@ func favicon(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Not found")
 }
 
-func readFile(filePath string) string {
+func readFile(filePath string) []byte {
 	filePath = os.Getenv("HOME") + "/" + filePath
 	// Read the content of the file
 	content, err := os.ReadFile(filePath)
@@ -176,12 +182,12 @@ func readFile(filePath string) string {
 			os.Exit(1)
 		}
 	}
-	return string(content)
+	return content
 }
 
-func writeFile(filePath string, contents string) {
+func writeFile(filePath string, contents []byte) {
 	filePath = os.Getenv("HOME") + "/" + filePath
-	err := os.WriteFile(filePath, []byte(contents), 0644)
+	err := os.WriteFile(filePath, contents, 0644)
 	if err != nil {
 		log.Fatalf("Error writing file: %+v", err)
 	}
