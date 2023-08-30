@@ -3,8 +3,9 @@
 Checks if the current song is liked or not because it can't be read via AppleScript.
 It simply outputs a `false` or `true`.
 
-\*\*NOTE: It will open an auth link in your browser briefly, but it will close.
-It does this every hour.
+**NOTE**: It will open an auth link in your browser on first run or when its
+token expires but after you authorize it the first time, the window should close
+immediately after.
 
 I use this in BetterTouchTool to make a Stream Deck button that shows whether
 the current song is liked or not.
