@@ -23,5 +23,10 @@ set up an appplication on the [Spotify Developer portal](https://developer.spoti
 If you haven't already, you'll need to install the BetterTouchTool plugin by
 going to `Settings -> Stream Deck -> Install/Reinstall Stream Deck Plugin`.
 The config for BetterTouchTool is in `BetterTouchTool trigger.json`, you will
-need to update the path to this repo in the script. Then just add a
+need to update these in the `Script` part:
+
+- `repo` to where this repo is cloned
+- `go` to where your `go` is (recommend 1.19.5)
+
+Then just add a
 BetterTouchTool button to your Stream Deck with the ID `Liked`.
