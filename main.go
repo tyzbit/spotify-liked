@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/gofrs/flock"
 	cfg "github.com/golobby/config/v3"
 	"github.com/golobby/config/v3/pkg/feeder"
 	"github.com/zmb3/spotify/v2"
@@ -77,6 +78,15 @@ func main() {
 		log.Println("Got request for:", r.URL.String())
 	})
 
+	file := os.Getenv("HOME") + "/" + authfile
+	fileLock := flock.New(file)
+	_, err := fileLock.TryLock()
+	if err != nil {
+		log.Fatalf("%v: File is locked, exiting", authfile)
+		os.Exit(1)
+	}
+	defer fileLock.Unlock()
+
 	// See if saved auth is still good
 	go func() {
 		token := trySavedAuth(context.Background())
@@ -126,6 +136,8 @@ func main() {
 		if err != nil {
 			log.Panicf("Error getting currently playing song: %+v", err)
 		}
+		file, _ := json.MarshalIndent(token, "", " ")
+		writeFile(authfile, file)
 		rch <- fmt.Sprintf("%t", isSaved[0])
 	}()
 
@@ -143,12 +155,6 @@ func trySavedAuth(ctx context.Context) *oauth2.Token {
 	user, err := client.CurrentUser(context.Background())
 	if user == nil {
 		log.Printf("Saved token didn't work: %+v", err)
-		return token
-	}
-	state, _ := client.PlayerCurrentlyPlaying(context.Background())
-	if state == nil {
-		log.Printf("User is probably not playing anything")
-		ch <- client
 		return token
 	}
 	ch <- client
