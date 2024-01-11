@@ -80,8 +80,8 @@ func main() {
 
 	file := os.Getenv("HOME") + "/" + authfile
 	fileLock := flock.New(file)
-	_, err := fileLock.TryLock()
-	if err != nil {
+	lock, err := fileLock.TryLock()
+	if err != nil || !lock {
 		log.Fatalf("%v: File is locked, exiting", authfile)
 		os.Exit(1)
 	}
@@ -155,6 +155,7 @@ func trySavedAuth(ctx context.Context) *oauth2.Token {
 	user, err := client.CurrentUser(context.Background())
 	if user == nil {
 		log.Printf("Saved token didn't work: %+v", err)
+		log.Printf("Try opening https://spotify.com in your browser and re-running")
 		return token
 	}
 	ch <- client
