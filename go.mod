@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/gofrs/flock v0.8.1
 	github.com/golobby/config/v3 v3.4.2
+	github.com/sirupsen/logrus v1.9.3
 	github.com/zmb3/spotify/v2 v2.3.1
 	golang.org/x/oauth2 v0.11.0
 )
