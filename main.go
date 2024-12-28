@@ -141,7 +141,7 @@ func readAuthFile() {
 func unlockAuthFile(fileLock *flock.Flock) {
 	err := fileLock.Unlock()
 	if err != nil {
-		log.Warn("error unlocking file: %w", err)
+		log.Warn("Error unlocking file: %w", err)
 	}
 }
 
@@ -150,7 +150,7 @@ func trySavedAuth() {
 	token := validateContext(context.Background())
 
 	if token.AccessToken == "" {
-		log.Warn("access token blank")
+		log.Warn("Access token blank")
 		go func() {
 			log.Debug("starting http server")
 			err := http.ListenAndServe(":8080", nil)
@@ -163,7 +163,7 @@ func trySavedAuth() {
 		log.Debug("opening url to auth")
 		err := exec.Command("open", url).Start()
 		if err != nil {
-			log.Errorf("error running command: %+v", err)
+			log.Errorf("Error running command: %+v", err)
 		}
 	}
 }
@@ -181,10 +181,10 @@ func findOutIfTrackIsLiked() {
 	log.Debug("getting state")
 	state, _ := client.PlayerCurrentlyPlaying(context.Background())
 	if state.Item == nil {
-		log.Warn("item was empty, maybe nothing playing?")
+		log.Warn("Item was empty, maybe nothing playing?")
 		log.Warn("Spotify's API sometimes returns no content (204) when apps on different devices are out of sync")
 		log.Warn("https://community.spotify.com/t5/Spotify-for-Developers/204-regularly-being-incorrectly-returned-for-v1-me-player/m-p/5323282/highlight/true#M3879")
-		log.Warn("try restarting spotify on all devices logged into this account")
+		log.Warn("Try restarting spotify on all devices logged into this account")
 		rch <- "false"
 		return
 	}
