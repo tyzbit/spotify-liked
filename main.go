@@ -49,12 +49,23 @@ var (
 	</body>
 	</html>
 	`
+	outputGlyphs = map[string]map[bool]string{
+		"emoji": {
+			true:  "💚",
+			false: "🩶",
+		},
+		"ascii": {
+			true:  "<3",
+			false: "</3",
+		},
+	}
 )
 
 type Config struct {
-	ID       string `env:"SPOTIFY_ID"`
-	Secret   string `env:"SPOTIFY_SECRET"`
-	LogLevel string `env:"LOGLEVEL"`
+	ID         string `env:"SPOTIFY_ID"`
+	Secret     string `env:"SPOTIFY_SECRET"`
+	LogLevel   string `env:"LOGLEVEL"`
+	OutputMode string `env:"OUTPUT_MODE"`
 }
 
 // Set up Config, logging
@@ -161,9 +172,11 @@ func trySavedAuth() {
 
 		url := auth.AuthURL(state)
 		log.Debug("opening url to auth")
+		// May only work on MacOS
 		err := exec.Command("open", url).Start()
 		if err != nil {
 			log.Errorf("Error running command: %+v", err)
+			log.Errorf("Please navigate manually to %s", url)
 		}
 	}
 }
@@ -198,7 +211,12 @@ func findOutIfTrackIsLiked() {
 	file, _ := json.MarshalIndent(token, "", " ")
 	writeFile(authfile, file)
 	log.Debug("sending response to channel")
-	rch <- fmt.Sprintf("%t", isSaved[0])
+	if config.OutputMode != "" {
+		rch <- outputGlyphs[config.OutputMode][isSaved[0]]
+		return
+	} else {
+		rch <- fmt.Sprintf("%t", isSaved[0])
+	}
 }
 
 func validateContext(ctx context.Context) *oauth2.Token {
